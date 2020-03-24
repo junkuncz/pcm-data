@@ -20,7 +20,10 @@
         }
     },
     "require": {
-        "php": ">=7.1"
+        "php": ">=7.1",
+      "ext-pdo": "*",
+        "ext-json": "*",
+        "ext-curl": "*"
     },
     "require-dev": {
         "consolidation/Robo": "^1.3",
