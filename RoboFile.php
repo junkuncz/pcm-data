@@ -152,7 +152,7 @@ class RoboFile extends \Robo\Tasks {
         set_time_limit(0);
         ini_set('display_errors', 1);
 
-        $this->loadProductsDataIntoDatabase('attributes', FALSE, TRUE, FALSE);
+        $this->loadProductsDataIntoDatabase('documents', TRUE, TRUE, FALSE);
     }
 
     public function importProducts($datatype, $generate_nodes, $download_from_webservice, $load_into_db, $initialize_db_table) {
@@ -840,7 +840,25 @@ ON DUPLICATE KEY UPDATE sku=:sku;";
                                                             'url' => empty($item['url']) ? '' : $item['url'],
                                                         );
 
-                                                        $connection->insert($db_table_name)->fields($data)->execute();
+                                                        // $connection->insert($db_table_name)->fields($data)->execute();
+
+                                                        try {
+                                                            $sql = "INSERT INTO `$db_table_name` (sku, type, label, name, url) VALUES (:sku, :type, :label, :name, :url);";
+                                                            $stmt = $connection->prepare($sql);
+                                                            $stmt->bindParam(':sku', $data['sku']);
+                                                            $stmt->bindParam(':type', $data['type']);
+                                                            $stmt->bindParam(':label', $data['label']);
+                                                            $stmt->bindParam(':name', $data['name']);
+                                                            $stmt->bindParam(':url', $data['url']);
+                                                            $stmt->execute();
+
+                                                        }
+                                                        catch(PDOException $e)
+                                                        {
+                                                            echo $stmt . "<br>" . $e->getMessage();
+                                                        }
+
+
                                                         $record_count++;
                                                     }
                                                 }
@@ -855,7 +873,25 @@ ON DUPLICATE KEY UPDATE sku=:sku;";
                                                         'url' => empty($item['url']) ? '' : $item['url'],
                                                     );
 
-                                                    $connection->insert($db_table_name)->fields($data)->execute();
+                                                    // $connection->insert($db_table_name)->fields($data)->execute();
+
+                                                    try {
+                                                        $sql = "INSERT INTO `$db_table_name` (sku, type, label, name, url) VALUES (:sku, :type, :label, :name, :url);";
+                                                        $stmt = $connection->prepare($sql);
+                                                        $stmt->bindParam(':sku', $data['sku']);
+                                                        $stmt->bindParam(':type', $data['type']);
+                                                        $stmt->bindParam(':label', $data['label']);
+                                                        $stmt->bindParam(':name', $data['name']);
+                                                        $stmt->bindParam(':url', $data['url']);
+                                                        $stmt->execute();
+
+                                                    }
+                                                    catch(PDOException $e)
+                                                    {
+                                                        echo $stmt . "<br>" . $e->getMessage();
+                                                    }
+
+
                                                     $record_count++;
                                                 }
                                             }
