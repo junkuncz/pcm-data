@@ -142,11 +142,17 @@ class RoboFile extends \Robo\Tasks {
         }
     }
 
-    public function test() {
-        $dataTypes = [self::WEBSERVICE_DATA_TYPE_PRODUCTS];
-        $languages = ['en', 'fr'];
+    public function importDatabaseSchema() {
+        $connection = $this->connectDatabase();
+        $sql = file_get_contents('db_schema.sql');
+        $connection->exec($sql);
+    }
 
-        $this->downloadDataFromRemoteWebService($dataTypes, $languages, 100);
+    public function test() {
+        set_time_limit(0);
+        ini_set('display_errors', 1);
+
+        $this->loadProductsDataIntoDatabase('attributes', FALSE, TRUE, FALSE);
     }
 
     public function importProducts($datatype, $generate_nodes, $download_from_webservice, $load_into_db, $initialize_db_table) {
@@ -425,17 +431,6 @@ class RoboFile extends \Robo\Tasks {
                         $this->printInfo($remoteURL);
 
                         $dataContent = file_get_contents($remoteURL);
-//                        $ch = curl_init();
-//                        curl_setopt($ch, CURLOPT_URL, $remoteURL);
-//                        curl_setopt($ch, CURLOPT_FAILONERROR, true); // Required for HTTP error codes to be reported via our call to curl_error($ch)
-//                        curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-////...
-//                        $dataContent = curl_exec($ch);
-//                        if (curl_errno($ch)) {
-//                            $error_msg = curl_error($ch);
-//                            print $error_msg;
-//                        }
-//                        curl_close($ch);
                         if (!empty($dataContent)) {
                             preg_match('/^\{\s*"products"\s*:\s*\[(.*)\]\s*\}$/msU', $dataContent, $matches);
                             $dataContent = empty($matches[1]) ? '' : $matches[1];
@@ -519,7 +514,86 @@ class RoboFile extends \Robo\Tasks {
                             foreach($products as $product) {
                                 $product = $this->formatProductData($product);
                                 if (!empty($product)) {
-                                    $connection->upsert($db_table_name)->fields($product)->key('sku')->execute();
+                                    try {
+                                        isset($product['sku']) ? $product['sku'] : $product['sku'] = '';
+                                        isset($product['category']) ? $product['category'] : $product['category'] = '';
+                                        isset($product['upc']) ? $product['upc'] : $product['upc'] = '';
+                                        isset($product['brand']) ? $product['brand'] : $product['brand'] = '';
+                                        isset($product['modelStatus']) ? $product['modelStatus'] : $product['modelStatus'] = '';
+                                        isset($product['country']) ? $product['country'] : $product['country'] = '';
+                                        isset($product['model']) ? $product['model'] : $product['model'] = '';
+                                        isset($product['linkText']) ? $product['linkText'] : $product['linkText'] = '';
+                                        isset($product['metatag']) ? $product['metatag'] : $product['metatag'] = '';
+                                        isset($product['name']) ? $product['name'] : $product['name'] = '';
+                                        isset($product['siteTitle']) ? $product['siteTitle'] : $product['siteTitle'] = '';
+                                        isset($product['descriptionMedium']) ? $product['descriptionMedium'] : $product['descriptionMedium'] = '';
+                                        isset($product['descriptionLong']) ? $product['descriptionLong'] : $product['descriptionLong'] = '';
+                                        isset($product['keywords']) ? $product['keywords'] : $product['keywords'] = '';
+                                        isset($product['realWeight']) ? $product['realWeight'] : $product['realWeight'] = '';
+                                        isset($product['weight']) ? $product['weight'] : $product['weight'] = '';
+                                        isset($product['depth']) ? $product['depth'] : $product['depth'] = '';
+                                        isset($product['depthInches']) ? $product['depthInches'] : $product['depthInches'] = '';
+                                        isset($product['height']) ? $product['height'] : $product['height'] = '';
+                                        isset($product['heightInches']) ? $product['heightInches'] : $product['heightInches'] = '';
+                                        isset($product['length']) ? $product['length'] : $product['length'] = '';
+                                        isset($product['lengthInches']) ? $product['lengthInches'] : $product['lengthInches'] = '';
+                                        isset($product['realDepth']) ? $product['realDepth'] : $product['realDepth'] = '';
+                                        isset($product['realDepthInches']) ? $product['realDepthInches'] : $product['realDepthInches'] = '';
+                                        isset($product['realHeight']) ? $product['realHeight'] : $product['realHeight'] = '';
+                                        isset($product['realHeightInches']) ? $product['realHeightInches'] : $product['realHeightInches'] = '';
+                                        isset($product['realLength']) ? $product['realLength'] : $product['realLength'] = '';
+                                        isset($product['realLengthInches']) ? $product['realLengthInches'] : $product['realLengthInches'] = '';
+                                        isset($product['html']) ? $product['html'] : $product['html'] = '';
+                                        isset($product['modelStartDate']) ? $product['modelStartDate'] : $product['modelStartDate'] = '';
+                                        isset($product['modelEndDate']) ? $product['modelEndDate'] : $product['modelEndDate'] = '';
+
+                                        $sql = "INSERT INTO `$db_table_name`
+(sku, category, upc, brand, modelStatus, country, model, linkText, metatag, name, siteTitle,
+descriptionMedium, descriptionLong, keywords, realWeight, weight, depth, depthInches, height, heightInches, length, lengthInches,
+realDepth, realDepthInches, realHeight, realHeightInches, realLength, realLengthInches, html, modelStartDate, modelEndDate)
+VALUES (:sku, :category, :upc, :brand, :modelStatus, :country, :model, :linkText, :metatag,
+:name, :siteTitle, :descriptionMedium, :descriptionLong, :keywords, :realWeight, :weight, :depth,
+:depthInches, :height, :heightInches, :length, :lengthInches, :realDepth, :realDepthInches, :realHeight, :realHeightInches, :realLength, :realLengthInches, :html, :modelStartDate, :modelEndDate)
+ON DUPLICATE KEY UPDATE sku=:sku;";
+                                        $stmt = $connection->prepare($sql);
+                                        $stmt->bindParam(':sku', $product['sku']);
+                                        $stmt->bindParam(':category', $product['category']);
+                                        $stmt->bindParam(':upc', $product['upc']);
+                                        $stmt->bindParam(':brand', $product['brand']);
+                                        $stmt->bindParam(':modelStatus', $product['modelStatus']);
+                                        $stmt->bindParam(':country', $product['country']);
+                                        $stmt->bindParam(':model', $product['model']);
+                                        $stmt->bindParam(':linkText', $product['linkText']);
+                                        $stmt->bindParam(':metatag', $product['metatag']);
+                                        $stmt->bindParam(':name', $product['name']);
+                                        $stmt->bindParam(':siteTitle', $product['siteTitle']);
+                                        $stmt->bindParam(':descriptionMedium', $product['descriptionMedium']);
+                                        $stmt->bindParam(':descriptionLong', $product['descriptionLong']);
+                                        $stmt->bindParam(':keywords', $product['keywords']);
+                                        $stmt->bindParam(':realWeight', $product['realWeight']);
+                                        $stmt->bindParam(':weight', $product['weight']);
+                                        $stmt->bindParam(':depth', $product['depth']);
+                                        $stmt->bindParam(':depthInches', $product['depthInches']);
+                                        $stmt->bindParam(':height', $product['height']);
+                                        $stmt->bindParam(':heightInches', $product['heightInches']);
+                                        $stmt->bindParam(':length', $product['length']);
+                                        $stmt->bindParam(':lengthInches', $product['lengthInches']);
+                                        $stmt->bindParam(':realDepth', $product['realDepth']);
+                                        $stmt->bindParam(':realDepthInches', $product['realDepthInches']);
+                                        $stmt->bindParam(':realHeight', $product['realHeight']);
+                                        $stmt->bindParam(':realHeightInches', $product['realHeightInches']);
+                                        $stmt->bindParam(':realLength', $product['realLength']);
+                                        $stmt->bindParam(':realLengthInches', $product['realLengthInches']);
+                                        $stmt->bindParam(':html', $product['html']);
+                                        $stmt->bindParam(':modelStartDate', $product['modelStartDate']);
+                                        $stmt->bindParam(':modelEndDate', $product['modelEndDate']);
+                                        $stmt->execute();
+
+                                    }
+                                    catch(PDOException $e)
+                                    {
+                                        echo $stmt . "<br>" . $e->getMessage();
+                                    }
                                     $record_count++;
                                 }
                             }
@@ -598,7 +672,21 @@ class RoboFile extends \Robo\Tasks {
                                                                     'name' => $item['name'],
                                                                     'value' => $value,
                                                                 );
-                                                                $connection->insert($db_table_name)->fields($data)->execute();
+//                                                                $connection->insert($db_table_name)->fields($data)->execute();
+                                                                try {
+                                                                    $sql = "INSERT INTO `$db_table_name` (sku, name, value) VALUES (:sku, :name, :value);";
+                                                                    $stmt = $connection->prepare($sql);
+                                                                    $stmt->bindParam(':sku', $data['sku']);
+                                                                    $stmt->bindParam(':name', $data['name']);
+                                                                    $stmt->bindParam(':value', $data['value']);
+                                                                    $stmt->execute();
+
+                                                                }
+                                                                catch(PDOException $e)
+                                                                {
+                                                                    echo $stmt . "<br>" . $e->getMessage();
+                                                                }
+                                                                $record_count++;
 
                                                                 $product_features[$item['name']] = $value;
 
@@ -609,8 +697,22 @@ class RoboFile extends \Robo\Tasks {
                                                 }
                                             }
                                         }
+//                                        // $connection->update($product_table_name)->fields(array('features' => (empty($product_features) ? '' : json_encode($product_features))))->condition('sku', $product['sku'])->execute();
+                                        $product_features = (empty($product_features) ? '' : json_encode($product_features));
 
-                                        $connection->update($product_table_name)->fields(array('features' => (empty($product_features) ? '' : json_encode($product_features))))->condition('sku', $product['sku'])->execute();
+                                        try {
+                                            $sql = "UPDATE `$product_table_name` SET features=:features WHERE sku=:sku;";
+                                            $stmt = $connection->prepare($sql);
+                                            $stmt->bindParam(':features', $product_features);
+                                            $stmt->bindParam(':sku', $product['sku']);
+                                            $stmt->execute();
+
+                                        }
+                                        catch(PDOException $e)
+                                        {
+                                            echo $stmt . "<br>" . $e->getMessage();
+                                        }
+
                                     }
                                 }
                             }
