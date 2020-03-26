@@ -152,7 +152,7 @@ class RoboFile extends \Robo\Tasks {
         set_time_limit(0);
         ini_set('display_errors', 1);
 
-        $this->loadProductsDataIntoDatabase('documents', TRUE, TRUE, FALSE);
+        $this->loadProductsDataIntoDatabase('files', TRUE, TRUE, FALSE);
     }
 
     public function importProducts($datatype, $generate_nodes, $download_from_webservice, $load_into_db, $initialize_db_table) {
@@ -744,10 +744,19 @@ ON DUPLICATE KEY UPDATE sku=:sku;";
                     $db_table_name = $this->getDatabaseTableName($dataType, $lang);
                     $local_Directory = $this->getLocalFileDirectory($dataType, $lang) . '/';
 
-                    $record_count = 0;
 
-                    $result = $connection->query(sprintf('SELECT * FROM {%s} %s;', $db_table_name, $where));
-                    while ($row = $result->fetchAssoc()) {
+                    $record_count = 0;
+                    // $result = $connection->query(sprintf('SELECT * FROM {%s} %s;', $db_table_name, $where));
+                    if (empty($sku)) {
+                        $stmt = $connection->prepare("SELECT * FROM `$db_table_name` WHERE downloaded = 0;");
+                    }
+                    else {
+                        $stmt = $connection->prepare("SELECT * FROM `$db_table_name` WHERE downloaded = 0 AND sku=:sku;");
+                        $stmt->bindParam(':sku', $sku);
+                    }
+                    $stmt->execute();
+
+                    while ($row = $stmt->fetch()) {
                         $name = empty($row['name']) ? '': $row['name'];
                         $url = empty($row['url']) ? '': $row['url'];
 
@@ -768,10 +777,16 @@ ON DUPLICATE KEY UPDATE sku=:sku;";
                                         $record_count++;
 
                                         if ($dataType == self::WEBSERVICE_DATA_TYPE_HIGHLIGHTS) {
-                                            $connection->query(sprintf("UPDATE {%s} SET downloaded = 1 WHERE (sku = '%s') AND (imageUrl = '%s') LIMIT 1;", $db_table_name, $row['sku'], $row['imageUrl']));
+                                            // $connection->query(sprintf("UPDATE {%s} SET downloaded = 1 WHERE (sku = '%s') AND (imageUrl = '%s') LIMIT 1;", $db_table_name, $row['sku'], $row['imageUrl']));
+                                            $stmt = $connection->prepare("UPDATE `$db_table_name` SET downloaded = 1 WHERE sku=:sku AND imageUrl=:imageUrl LIMIT 1;");
+                                            $stmt->bindParam(':sku', $row['sku']);
+                                            $stmt->bindParam(':imageUrl', $row['imageUrl']);
                                         }
                                         else {
-                                            $connection->query(sprintf("UPDATE {%s} SET downloaded = 1 WHERE (sku = '%s') AND (name = '%s') LIMIT 1;", $db_table_name, $row['sku'], $row['name']));
+                                            //$connection->query(sprintf("UPDATE {%s} SET downloaded = 1 WHERE (sku = '%s') AND (name = '%s') LIMIT 1;", $db_table_name, $row['sku'], $row['name']));
+                                            $stmt = $connection->prepare("UPDATE `$db_table_name` SET downloaded = 1 WHERE sku=:sku AND name=:name LIMIT 1;");
+                                            $stmt->bindParam(':sku', $row['sku']);
+                                            $stmt->bindParam(':name', $row['name']);
                                         }
                                     }
                                     fclose($handle);
@@ -970,7 +985,23 @@ ON DUPLICATE KEY UPDATE sku=:sku;";
                                                     'imageUrl' => empty($item['imageUrl']) ? '' : $item['imageUrl'],
                                                     'videoUrl' => empty($item['videoUrl']) ? '' : $item['videoUrl'],
                                                 );
-                                                $connection->insert($db_table_name)->fields($data)->execute();
+                                                //$connection->insert($db_table_name)->fields($data)->execute();
+
+                                                try {
+                                                    $sql = "INSERT INTO `$db_table_name` (sku, title, description, imageUrl, videoUrl) VALUES (:sku, :title, :description, :imageUrl, :videoUrl);";
+                                                    $stmt = $connection->prepare($sql);
+                                                    $stmt->bindParam(':sku', $data['sku']);
+                                                    $stmt->bindParam(':title', $data['title']);
+                                                    $stmt->bindParam(':description', $data['description']);
+                                                    $stmt->bindParam(':imageUrl', $data['imageUrl']);
+                                                    $stmt->bindParam(':videoUrl', $data['videoUrl']);
+                                                    $stmt->execute();
+
+                                                }
+                                                catch(PDOException $e)
+                                                {
+                                                    echo $stmt . "<br>" . $e->getMessage();
+                                                }
 
                                                 $record_count++;
                                             }
@@ -1220,7 +1251,7 @@ ON DUPLICATE KEY UPDATE sku=:sku;";
 
                 $record_count = 0;
                 $result = $connection->query(sprintf('SELECT * FROM {%s} %s;', $db_table_name, $where));
-                while ($row = $result->fetchAssoc()) {
+                while ($row = $result->fetchAll()) {
                     $filePath = $local_Directory . ltrim($row['name'], '/');
                     $altLabel = $row['label'];
 
@@ -1288,7 +1319,7 @@ ON DUPLICATE KEY UPDATE sku=:sku;";
 
                 $record_count = 0;
                 $result = $connection->query(sprintf('SELECT * FROM {%s} %s;', $db_table_name, $where));
-                while ($row = $result->fetchAssoc()) {
+                while ($row = $result->fetchAll()) {
                     $title = empty($row['title']) ? '' : $row['title'];
                     $description = empty($row['description']) ? '' : $row['description'];
                     $imageUrl = empty($row['imageUrl']) ? '' : $row['imageUrl'];
