@@ -781,12 +781,14 @@ ON DUPLICATE KEY UPDATE sku=:sku;";
                                             $stmt = $connection->prepare("UPDATE `$db_table_name` SET downloaded = 1 WHERE sku=:sku AND imageUrl=:imageUrl LIMIT 1;");
                                             $stmt->bindParam(':sku', $row['sku']);
                                             $stmt->bindParam(':imageUrl', $row['imageUrl']);
+                                            $stmt->execute();
                                         }
                                         else {
                                             //$connection->query(sprintf("UPDATE {%s} SET downloaded = 1 WHERE (sku = '%s') AND (name = '%s') LIMIT 1;", $db_table_name, $row['sku'], $row['name']));
                                             $stmt = $connection->prepare("UPDATE `$db_table_name` SET downloaded = 1 WHERE sku=:sku AND name=:name LIMIT 1;");
                                             $stmt->bindParam(':sku', $row['sku']);
                                             $stmt->bindParam(':name', $row['name']);
+                                            $stmt->execute();
                                         }
                                     }
                                     fclose($handle);
