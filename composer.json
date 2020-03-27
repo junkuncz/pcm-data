@@ -1,11 +1,10 @@
 {
-    "name": "g1a/starter",
-    "description": "Template project for PHP libraries.",
-    "license": "MIT",
+    "name": "pcm-data-import",
+    "description": "Imports data into a separated database from PCM API.",
     "authors": [
         {
-            "name": "Greg Anderson",
-            "email": "greg.1.anderson@greenknowe.org"
+            "name": "Balint Junkuncz",
+            "email": "bjunkuncz@relevantbits.com"
         }
     ],
     "autoload":{
@@ -21,9 +20,10 @@
     },
     "require": {
         "php": ">=7.1",
-      "ext-pdo": "*",
+        "ext-curl": "*",
         "ext-json": "*",
-        "ext-curl": "*"
+        "ext-pdo": "*",
+        "vlucas/phpdotenv": "^4.1"
     },
     "require-dev": {
         "consolidation/Robo": "^1.3",
